@@ -6,9 +6,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder> {
 
@@ -30,12 +32,26 @@ public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int i) {
         ListOrder order = orders.get(i);
+        Integer number = i + 1;
 
-        viewHolder.orderNumber.setText(order.getOrderNumber()+ "");
-        viewHolder.username.setText(order.getUsername());
-        viewHolder.order.setText(order.getOrder());
+        viewHolder.orderNumber.setText("Order #" + number + "");
+        viewHolder.username.setText("Client: " + order.getUsername());
+        viewHolder.order.setText("Order: " + order.getOrder());
+        viewHolder.deleteButton.setOnClickListener(new Button.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                System.out.println("SIZE BEFORE DELETE: " + orders.size());
+                System.out.println("I: " + i);
+                ListOrder order = orders.get(i);
+                orders.remove(order);
+                notifyItemRemoved(i);
+                notifyItemRangeChanged(i, orders.size());
+                System.out.println("SIZE AFTER DELETE: " + orders.size());
+            }
+        });
     }
 
     @Override
@@ -48,6 +64,7 @@ public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder
         public TextView orderNumber;
         public TextView username;
         public TextView order;
+        public Button deleteButton;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -55,6 +72,7 @@ public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder
             orderNumber = (TextView) itemView.findViewById(R.id.orderNumber);
             username = (TextView) itemView.findViewById(R.id.username);
             order = (TextView) itemView.findViewById(R.id.order);
+            deleteButton = itemView.findViewById(R.id.deleteOrderButton);
         }
     }
 }
