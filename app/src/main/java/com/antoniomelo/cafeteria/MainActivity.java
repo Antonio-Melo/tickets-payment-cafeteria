@@ -4,26 +4,47 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 
 
-import com.loopj.android.http.AsyncHttpClient;
-import com.loopj.android.http.AsyncHttpResponseHandler;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 
-import java.io.UnsupportedEncodingException;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
-import cz.msebera.android.httpclient.Header;
-import cz.msebera.android.httpclient.entity.StringEntity;
-import cz.msebera.android.httpclient.message.BasicHeader;
-import cz.msebera.android.httpclient.protocol.HTTP;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String SERVER_IP = "10.227.155.2";
+
     private RecyclerView recyclerView;
-    private RecyclerView.Adapter adapter;
+    private OrdersAdaptor adapter;
     private ArrayList<ListOrder> orders;
-    public Boolean validadeVouchersStatus = false;
-    public Boolean createTransactionStatus = false;
+
+    final long timeInterval = 5000;
+    Runnable runnable = new Runnable() {
+
+        public void run() {
+            while (true) {
+                Log.d("CAFETARIA", "boas");
+                getOrder();
+                try {
+                    Thread.sleep(timeInterval);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,87 +58,60 @@ public class MainActivity extends AppCompatActivity {
 
         /* Add elements to list */
 
-        for(int i = 0; i < 10; i++)
-            orders.add(new ListOrder(i,"António","Drink"));
+       /* for(int i = 0; i < 10; i++)
+            orders.add(new ListOrder(i,"António","Drink"));*/
 
         adapter = new OrdersAdaptor(orders, this);
         recyclerView.setAdapter(adapter);
 
-        //System.out.println(validateVouchers());
-        System.out.println(createTransaction());
+        Thread thread = new Thread(runnable);
+        thread.start();
     }
 
-    private Boolean validateVouchers(){
-        try {
-            String bodyString = "{\"uuid\": \"3309fb76-107f-4f7d-aeaa-afc3cbaaf8df\", \"vouchers\": [\"fcac5224-4890-4e14-98a1-024df8ff88e7\", \"3e257e02-790b-4fe0-8fbe-1f02f2ee7e95\"]}";
-            StringEntity body = new StringEntity(bodyString);
-            body.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+    public void getOrder() {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "http://" + SERVER_IP + ":3000/orders/";
 
-            AsyncHttpClient client = new AsyncHttpClient();
-
-            client.post(null,"http://10.0.2.2:3000/validation/vouchers", body, "application/json", new AsyncHttpResponseHandler() {
-
-                @Override
-                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                    System.out.println("STATUS CODE: " +statusCode);
-                    validadeVouchersStatus = true;
+        JsonObjectRequest jsonObjectRequest= new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("CAFETARIA", response.toString());
+                try {
+                    adapter.setOrders(response.getJSONArray("orders"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
 
-                @Override
-                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                    System.out.println("STATUS CODE: " +statusCode);
-                    System.out.println(error);
-                    validadeVouchersStatus = false;
-                }
-            });
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("CAFETARIA", "Getting orders error");
+            }
+        });
 
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            validadeVouchersStatus = false;
-            return validadeVouchersStatus;
-        }
-        return validadeVouchersStatus;
+        queue.add(jsonObjectRequest);
     }
 
-    private Boolean createTransaction() {
-        try {
-            String bodyString = "{\n" +
-                    "  \"uuid\": \"3309fb76-107f-4f7d-aeaa-afc3cbaaf8df\",\n" +
-                    "  \"order\": {\n" +
-                    "    \"coffee\": \"2\",\n" +
-                    "    \"drink\": \"3\",\n" +
-                    "    \"popcorn\": \"1\",\n" +
-                    "    \"sandwich\": \"1\"\n" +
-                    "  },\n" +
-                    "  \"vouchers\": [\"fcac5224-4890-4e14-98a1-024df8ff88e7\", \"3e257e02-790b-4fe0-8fbe-1f02f2ee7e95\"]\n" +
-                    "}";
+    public void comunicateOrderDone(JSONObject order) {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "http://" + SERVER_IP +":3000/validation/order";
 
-            StringEntity body = new StringEntity(bodyString);
-            body.setContentType(new BasicHeader(HTTP.CONTENT_TYPE, "application/json"));
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, order, new Response.Listener<JSONObject>() {
+            @Override
+            public void onResponse(JSONObject response) {
+                Log.d("CAFETARIA", "Order done");
 
-            AsyncHttpClient client = new AsyncHttpClient();
 
-            client.post(null,"http://10.0.2.2:3000/users/order", body, "application/json", new AsyncHttpResponseHandler() {
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.d("CAFETARIA", "Order error");
 
-                @Override
-                public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                    System.out.println("STATUS CODE: " +statusCode);
-                    createTransactionStatus = true;
-                }
+            }
+        });
 
-                @Override
-                public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-                    System.out.println("STATUS CODE: " +statusCode);
-                    System.out.println(error);
-                    createTransactionStatus = false;
-                }
-            });
-
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-            validadeVouchersStatus = false;
-            return createTransactionStatus;
-        }
-        return createTransactionStatus;
+        queue.add(jsonObjectRequest);
     }
-}
+  }

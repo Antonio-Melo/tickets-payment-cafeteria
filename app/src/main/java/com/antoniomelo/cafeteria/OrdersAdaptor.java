@@ -1,7 +1,7 @@
 package com.antoniomelo.cafeteria;
 
-import android.content.Context;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,16 +9,20 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 
 public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder> {
 
     private ArrayList<ListOrder> orders;
-    private Context context;
+    private MainActivity mainActivity;
 
-    public OrdersAdaptor(ArrayList<ListOrder> orders, Context context) {
+    public OrdersAdaptor(ArrayList<ListOrder> orders, MainActivity mainActivity) {
         this.orders = orders;
-        this.context = context;
+        this.mainActivity = mainActivity;
     }
 
     @NonNull
@@ -42,13 +46,22 @@ public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder
 
             @Override
             public void onClick(View v) {
-                System.out.println("SIZE BEFORE DELETE: " + orders.size());
-                System.out.println("I: " + i);
-                ListOrder order = orders.get(i);
-                orders.remove(order);
-                notifyItemRemoved(i);
-                notifyItemRangeChanged(i, orders.size());
-                System.out.println("SIZE AFTER DELETE: " + orders.size());
+
+                try {
+                    ListOrder order = orders.get(i);
+                    JSONObject obj = new JSONObject();
+                    obj.put("orderId", order.getId());
+                    mainActivity.comunicateOrderDone(obj);
+                    orders.remove(order);
+                    notifyItemRemoved(i);
+                    notifyItemRangeChanged(i, orders.size());
+                    Snackbar snackbar = Snackbar.make(mainActivity.findViewById(R.id.main_activity_layout),
+                            R.string.order_done, Snackbar.LENGTH_LONG);
+
+                    snackbar.show();
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -56,6 +69,34 @@ public class OrdersAdaptor extends RecyclerView.Adapter<OrdersAdaptor.ViewHolder
     @Override
     public int getItemCount() {
         return orders.size();
+    }
+
+    public void setOrders(JSONArray orders) {
+        for(int index=0; index < orders.length(); index++){
+            try {
+                JSONObject order = orders.getJSONObject(index);
+                if (!hasId(order.getString("_id"))) {
+                    this.orders.add(new ListOrder(order.getString("_id"), (index + 1), order.getString("username"),
+                            order.getString("order")));
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+
+       /* if (this.orders.size() == 0) {
+            mainActivity.findViewById(R.id.no_orders).setVisibility(View.VISIBLE);
+        }
+*/
+        notifyDataSetChanged();
+    }
+
+    public boolean hasId(String id) {
+        for(ListOrder order: this.orders){
+            if (order.getId().equals(id)) return true;
+        }
+        return false;
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder{
