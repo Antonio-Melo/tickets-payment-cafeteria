@@ -11,11 +11,9 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,7 +22,9 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String SERVER_IP = "10.227.155.2";
+    private static final String LOCAL_SERVER_IP = "10.227.155.2:3000";
+    private static final String PUBLIC_SERVER_IP = "tickets-payment-rest-api.herokuapp.com";
+    private static String server_ip = PUBLIC_SERVER_IP;
 
     private RecyclerView recyclerView;
     private OrdersAdaptor adapter;
@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void getOrder() {
         RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://" + SERVER_IP + ":3000/orders/";
+        String url = "http://" + server_ip + "/orders/";
 
         JsonObjectRequest jsonObjectRequest= new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
             @Override
@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void comunicateOrderDone(JSONObject order) {
         RequestQueue queue = Volley.newRequestQueue(this);
-        String url = "http://" + SERVER_IP +":3000/validation/order";
+        String url = "http://" + server_ip +"/validation/order";
 
         JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.POST, url, order, new Response.Listener<JSONObject>() {
             @Override
